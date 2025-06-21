@@ -14,7 +14,7 @@ import {
   SlidersHorizontal,
 } from "lucide-react";
 
-const MAX_PRICE = 10000;
+const MAX_PRICE = 100000;
 
 export default function Slidebar() {
   const router = useRouter();
