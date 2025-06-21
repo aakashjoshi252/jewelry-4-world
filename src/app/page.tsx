@@ -17,6 +17,7 @@ export default function Home() {
         <link href="https://fonts.googleapis.com/css2?family=Gidole&display=swap" rel="stylesheet" />
       </Head>
       <Bheader />
+      
         <Carousel/>
       <div className="flex min-h-screen bg-white text-gray-900" style={{ fontFamily: 'Gidole, sans-serif' }}>
         {/* Main Content */}
