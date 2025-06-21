@@ -1,5 +1,7 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 
+import { useState, useEffect } from "react";
 import TopHeader from "./TopHeader";
 import MiddleHeader from "./MiddleHeader";
 import BottomHeader from "./BottomHeader";
@@ -9,31 +11,25 @@ interface HeaderProps {
 }
 
 export default function Header({ user }: HeaderProps) {
-  return (
-    <header className="w-full z-100 top-0 left-0 right-0 bg-white shadow-md sticky">
-      {/* TopHeader - might contain user info, contact details, etc. */}
-      <div className="hidden md:block">
-        <TopHeader user={user} />
-      </div>
-      
-      {/* MiddleHeader - typically contains logo and main navigation */}
-      <MiddleHeader />
-      
-      {/* BottomHeader - might contain secondary navigation or categories */}
-      <div className="hidden lg:block">
-        <BottomHeader />
-      </div>
+  const [prevScrollPos, setPrevScrollPos] = useState(0);
+  const [visible, setVisible] = useState(true);
 
-      {/* Mobile menu button could be added here */}
-      <div className="md:hidden flex justify-between items-center p-4">
-        <button className="text-gray-700">
-          {/* Hamburger icon */}
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-          </svg>
-        </button>
-        {/* Mobile logo or other elements */}
-      </div>
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollPos = window.scrollY;
+      setVisible(prevScrollPos > currentScrollPos || currentScrollPos < 10);
+      setPrevScrollPos(currentScrollPos);
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [prevScrollPos]);
+
+  return (
+    <header className="w-full top-0 left-0 right-0 bg-white shadow-md">
+      <TopHeader />
+      <MiddleHeader />
+      <BottomHeader />
     </header>
   );
 }

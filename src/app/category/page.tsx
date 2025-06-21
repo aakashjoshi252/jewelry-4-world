@@ -36,7 +36,7 @@ export default async function CategoryPage({ params }: { params: { slug: string 
       <ul>
         {category.products.map((product: any) => (
           <li key={product.id}>
-            {product.name} - ₹{product.price}
+            {product.name} - {product.price}
           </li>
         ))}
       </ul>

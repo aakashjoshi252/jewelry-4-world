@@ -20,4 +20,3 @@ export interface CartItem {
     total: number;
     items: CartItem[];
   }
-  

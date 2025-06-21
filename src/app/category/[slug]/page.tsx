@@ -1,23 +1,25 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import { useQuery } from "@apollo/client";
+// import { useQuery } from "@apollo/client";
 import { CATEGORY_BY_SLUG, GET_PRODUCTS_BY_CATEGORY } from "../../../graphql/queries";
 import Link from "next/link";
 import { HeartIcon, StarIcon } from "lucide-react";
 import { formatCurrency } from "../../../lib/formatCurrency"; // Ensure these exist or replace accordingly
 import { convertPrice } from "../../../lib/currencyConverter";
+import { useCurrency } from "../../../providers/CurrencyContext";
+import { useQuery } from "@apollo/client";
 
 export default function CategoryPage({ params }: { params: { slug: string } }) {
-  const currency = "INR"; // Replace with your dynamic currency logic
+  const  { currency } = useCurrency(); // Replace with your dynamic currency logic
 
   // Fetch category data
   const { data: categoryData, loading: categoryLoading, error: categoryError } = useQuery(
     CATEGORY_BY_SLUG,
     {
       variables: { slug: params.slug },
-      onCompleted: (data) => console.log("Category query completed:", data),
-      onError: (error) => console.error("Category query error:", error),
+      onCompleted: (data: any) => console.log("Category query completed:", data),
+      onError: (error: any) => console.error("Category query error:", error),
     }
   );
 
@@ -27,8 +29,6 @@ export default function CategoryPage({ params }: { params: { slug: string } }) {
     {
       variables: { name: categoryData?.categoryBySlug?.name },
       skip: !categoryData?.categoryBySlug?.name,
-      onCompleted: (data) => console.log("Products query completed:", data),
-      onError: (error) => console.error("Products query error:", error),
     }
   );
 
@@ -67,12 +67,25 @@ export default function CategoryPage({ params }: { params: { slug: string } }) {
 
       <h2 className="text-xl font-semibold mb-4">Products</h2>
       {products.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
           {products.map((product: any) => (
             <div
             key={product.id}
-            className="group relative bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-all duration-300 border border-gray-100"
+            className="group relative bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden"
           >
+            <Link href={`/products/${product.slug}`} className="block">
+              <div className="aspect-square bg-gray-50 relative overflow-hidden">
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span className="text-gray-400 text-sm">Product Image</span>
+                </div>
+                {new Date(product.createdAt) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) && (
+                  <span className="absolute top-2 left-2 bg-white text-gray-600 text-xs font-light px-2 py-0.5">
+                    New
+                  </span>
+                )}
+              </div>
+            </Link>
+
             <button
               className="absolute top-3 right-3 z-10 p-2 rounded-full bg-white shadow-md opacity-0 group-hover:opacity-100 transition"
               aria-label="Add to wishlist"
@@ -80,23 +93,10 @@ export default function CategoryPage({ params }: { params: { slug: string } }) {
               <HeartIcon className="h-5 w-5 text-gray-400 hover:text-red-500" />
             </button>
           
-            <Link href={`/products/${product.slug}`} className="block">
-              <div className="aspect-square bg-gray-100 relative overflow-hidden">
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="text-gray-400 text-sm">Product Image</span>
-                </div>
-                {new Date(product.createdAt) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) && (
-                  <span className="absolute top-2 left-2 bg-green-500 text-white text-xs font-medium px-2 py-1 rounded-full">
-                    New
-                  </span>
-                )}
-              </div>
-            </Link>
-          
             <div className="p-4">
               <div className="flex justify-between items-start">
                 <Link href={`/products/${product.slug}`} className="block">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-1 hover:text-blue-600 transition">
+                  <h3 className="text-sm sm:text-base font-light text-gray-900 mb-1 hover:text-gray-600 transition line-clamp-2">
                     {product.name}
                   </h3>
                 </Link>
@@ -120,11 +120,11 @@ export default function CategoryPage({ params }: { params: { slug: string } }) {
                 </span>
               </div>
           
-              <p className="text-sm text-gray-600 line-clamp-2 mb-3">{product.description}</p>
+              {/* <p className="text-sm text-gray-600 line-clamp-2 mb-3">{product.description}</p> */}
           
               <div className="flex justify-between items-center">
                 <div>
-                  <p className="text-lg font-bold text-gray-900">
+                  <p className="text-sm font-light text-gray-900">
                     {formatCurrency(convertPrice(product.price, currency), currency)}
                   </p>
                 </div>

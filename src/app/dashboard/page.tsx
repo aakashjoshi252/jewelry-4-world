@@ -8,20 +8,35 @@ import Slider from "../../components/sliderforSeller";
 import TopHeader from "../../components/TopHeader";
 import Footer from "../../components/Footer";
 import SearchBar from "../../components/SearchBar";
+import { Edit3Icon } from "lucide-react";
+import LoadingPage from "@/components/LoadingPage";
+// import { redirect } from "next/navigation";
+// import { ME_QUERY } from "@/graphql/mutations";
 
 export default function Dashboard() {
   const [offset, setOffset] = useState(0);
-  const limit = 2;
+  const limit = 10;
 
   const [sortOrder, setSortOrder] = useState<"asc" | "desc" | null>(null);
   const [sortDate, setSortDate] = useState<"asc" | "desc" | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
 
-  const { data, loading } = useQuery(SELLER_PRODUCT_PAGINATION, {
+  const { data, loading } = useQuery(SELLER_PRODUCT_PAGINATION ,{
     variables: { limit, offset },
     fetchPolicy: "cache-and-network",
   });
+
+
+  // const {
+  //   data: sellerData,
+  //   error: sellerError,
+  //   loading: sellerLoading,
+  // } = useQuery(ME_QUERY);
+
+  // if (!sellerLoading && (sellerError || !sellerData?.me)) {
+  //   redirect("/auth/login"); // or homepage
+  // }
 
   const paginatedData = data?.paginatedMyProducts;
   const products = paginatedData?.products || [];
@@ -33,9 +48,7 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-screen text-lg font-semibold">
-        Loading...
-      </div>
+      <LoadingPage/>
     );
   }
 
@@ -159,16 +172,38 @@ export default function Dashboard() {
                             Image
                           </div>
                         </td>
-                        <td className="p-3 font-medium">{product.name}</td>
+                        {/* <td>
+                          <Link href={`/dashboard/${product.slug}`} className="block">
+                            <h3 className="text-sm sm:text-base font-light text-gray-900 mb-1 hover:text-gray-600 transition line-clamp-2">
+                              {product.name}
+                            </h3>
+                          </Link>
+                        </td> */}
+                        <td className="p-3 font-medium"><a href={`/dashboard/${product.slug}`}>{product.name}</a></td>
                         <td className="p-3">
                           {new Date(Number(product.createdAt)).toLocaleDateString()}
                         </td>
                         <td className="p-3 font-semibold">${product.price}</td>
                         <td className="p-3">{product.category?.name || "-"}</td>
                         <td className="p-3">
-                          <button className="px-3 py-1 bg-gray-500 text-white rounded hover:bg-blue-600 text-xs transition">
-                            Edit
-                          </button>
+                          {/* <button className="px-3 py-1 bg-gray-500 text-white rounded hover:bg-blue-600 text-xs transition"> */}
+                          <a
+                            href={`/editproduct/${product.id}`}
+                            className="
+                              flex items-center gap-2 
+                              px-3 py-2 
+                              bg-black-50 text-black-600 
+                              rounded-lg 
+                              border border-blue-200 
+                              hover:text-blue-700 
+                              transition-all duration-200 
+                              group
+                            "
+                            title="Edit"
+                            >
+                            <Edit3Icon className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                            <span className="text-sm font-medium">Edit</span>
+                            </a>
                         </td>
                       </tr>
                     ))}

@@ -9,4 +9,11 @@
     }
   }
 
-  
+main {
+  padding-top: var(--header-height);
+
+}
+
+.akash {
+  background-color: blueviolet;
+}

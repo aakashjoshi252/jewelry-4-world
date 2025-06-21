@@ -1,5 +1,5 @@
-/* eslint-disable @next/next/no-html-link-for-pages */
-import { Home, Menu, PlusIcon, User, X } from "lucide-react";
+import { Menu, X } from "lucide-react";
+import Link from "next/link";
 import { useState } from "react";
 
 export default function Slider() {
@@ -24,37 +24,66 @@ export default function Slider() {
           <h2 className="text-2xl font-bold mb-6 tracking-wide">Dashboard</h2>
         )}
 
-        <nav className="space-y-1">
-          <a
+       <nav className="space-y-1">
+          <Link
+            href="/dashboard"
+            className={`flex items-center p-3 rounded hover:bg-gray-700 transition-colors ${
+              isOpen ? "px-4" : "justify-center opacity-0 hover:opacity-100"
+            }`}
+            title="Dashboard"
+          >
+            <span className={`${isOpen ? "" : "hidden"}`}>Dashboard</span>
+          </Link>
+          
+          <Link
+            href="/auth/addproduct"
+            className={`flex items-center p-3 rounded hover:bg-gray-700 transition-colors ${
+              isOpen ? "px-4" : "justify-center opacity-0 hover:opacity-100"
+            }`}
+            title="Add Products"
+          >
+            <span className={`${isOpen ? "" : "hidden"}`}>Add Products</span>
+          </Link>
+          
+          <Link
+            href="/dashboard/orders"
+            className={`flex items-center p-3 rounded hover:bg-gray-700 transition-colors ${
+              isOpen ? "px-4" : "justify-center opacity-0 hover:opacity-100"
+            }`}
+            title="Orders"
+          >
+            <span className={`${isOpen ? "" : "hidden"}`}>Orders</span>
+          </Link>
+          
+          <Link
             href="/dashboard/profile"
-            className={`flex items-center gap-3 p-3 rounded hover:bg-gray-700 ${
-              isOpen ? "" : "justify-center"
+            className={`flex items-center p-3 rounded hover:bg-gray-700 transition-colors ${
+              isOpen ? "px-4" : "justify-center opacity-0 hover:opacity-100"
             }`}
             title="Profile"
           >
-            <User className="w-6 h-6 flex-shrink-0" />
-            {isOpen && <span>Profile</span>}
-          </a>
-          <a
-            href="/"
-            className={`flex items-center gap-3 p-3 rounded hover:bg-gray-700 ${
-              isOpen ? "" : "justify-center"
+            <span className={`${isOpen ? "" : "hidden"}`}>Profile</span>
+          </Link>
+          
+          <Link
+            href="/dashboard/categories"
+            className={`flex items-center p-3 rounded hover:bg-gray-700 transition-colors ${
+              isOpen ? "px-4" : "justify-center opacity-0 hover:opacity-100"
             }`}
-            title="Home"
+            title="Categories"
           >
-            <Home className="w-6 h-6 flex-shrink-0" />
-            {isOpen && <span>Home</span>}
-          </a>
-          <a
-            href="/auth/addproduct"
-            className={`flex items-center gap-3 p-3 rounded hover:bg-gray-700 ${
-              isOpen ? "" : "justify-center"
+            <span className={`${isOpen ? "" : "hidden"}`}>Categories</span>
+          </Link>
+          
+          <Link
+            href="/dashboard/settings"
+            className={`flex items-center p-3 rounded hover:bg-gray-700 transition-colors ${
+              isOpen ? "px-4" : "justify-center opacity-0 hover:opacity-100"
             }`}
-            title="Add Product"
+            title="Settings"
           >
-            <PlusIcon className="w-6 h-6 flex-shrink-0" />
-            {isOpen && <span>Add Product</span>}
-          </a>
+            <span className={`${isOpen ? "" : "hidden"}`}>Settings</span>
+          </Link>
         </nav>
       </div>
     </aside>

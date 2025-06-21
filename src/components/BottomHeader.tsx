@@ -1,20 +1,22 @@
 "use client";
 
-import { CATEGORY_BY_SLUG, GET_PARENT_CATEGORIES } from "@/graphql/queries";
-import { useQuery } from "@apollo/client";
+import { CATEGORY_BY_SLUG, GET_PARENT_CATEGORIES, GET_SUBCATEGORIES } from "@/graphql/queries";
+import { useQuery, useLazyQuery } from "@apollo/client";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
-import { ChevronLeft, ChevronRight, Menu } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 export default function BottomHeader() {
   const searchParams = useSearchParams();
   const categorySlug = searchParams.get("category");
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [scrollPosition, setScrollPosition] = useState(0);
-  const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [hoveredCategory, setHoveredCategory] = useState<string | null>(null);
+  const hoverTimeout = useRef<NodeJS.Timeout | null>(null);
   const navRef = useRef<HTMLDivElement>(null);
 
+  // Query for all categories or a specific one
   const { data, loading, error } = useQuery(
     categorySlug ? CATEGORY_BY_SLUG : GET_PARENT_CATEGORIES,
     {
@@ -22,6 +24,9 @@ export default function BottomHeader() {
       fetchPolicy: "cache-first",
     }
   );
+
+  // Lazy query for subcategories
+  const [fetchSubcategories, { data: subcategoriesData }] = useLazyQuery(GET_SUBCATEGORIES);
 
   useEffect(() => {
     if (categorySlug && data?.categoryBySlug) {
@@ -46,6 +51,20 @@ export default function BottomHeader() {
     }
   };
 
+  const handleCategoryHover = (categoryId: string) => {
+    if (hoverTimeout.current) clearTimeout(hoverTimeout.current);
+
+      hoverTimeout.current = setTimeout(() => {
+      setHoveredCategory(categoryId);
+      fetchSubcategories({ variables: { parentCategoryId: categoryId } });
+    }, 200); // 200ms delay
+  };
+
+  const handleMouseLeave = () => {
+    if (hoverTimeout.current) clearTimeout(hoverTimeout.current);
+    setHoveredCategory(null);
+  };
+
   if (loading) return <div className="h-12 bg-white"></div>;
   if (error) {
     console.error("Error fetching categories:", error);
@@ -57,89 +76,68 @@ export default function BottomHeader() {
     : data?.parentCategories || [];
 
   return (
-    <div className="bg-white border-t border-gray-200">
-      {/* Mobile Menu Button */}
+    <div className="hidden md:block relative bg-white">
       <button 
-        className="md:hidden w-full py-3 px-4 flex items-center justify-between bg-white"
-        onClick={() => setShowMobileMenu(!showMobileMenu)}
+        onClick={() => handleScroll('left')}
+        className="absolute left-0 top-0 h-full w-8 flex items-center justify-center bg-white z-10 hover:bg-gray-50"
+        aria-label="Scroll left"
       >
-        <span className="font-medium text-gray-800">
-          {activeCategory 
-            ? categoriesToDisplay.find((c: any) => c.slug === activeCategory)?.name 
-            : "All Categories"}
-        </span>
-        <Menu className="h-5 w-5 text-gray-600" />
+        <ChevronLeft className="h-5 w-5 text-gray-600" />
       </button>
 
-      {/* Desktop Navigation */}
-      <div className="hidden md:block relative bg-white">
-        {/* Scroll buttons - only show if content overflows */}
-        <button 
-          onClick={() => handleScroll('left')}
-          className={`absolute left-0 top-0 h-full w-8 flex items-center justify-center bg-white z-10 hover:bg-gray-50 ${scrollPosition <= 0 ? 'opacity-30 cursor-default' : ''}`}
-          aria-label="Scroll left"
-          disabled={scrollPosition <= 0}
+      <div 
+        ref={navRef}
+        className="flex justify-center items-center pb-3 gap-x-6 lg:gap-x-8 px-10 py-2 overflow-x-auto whitespace-nowrap scrollbar-hide"
+      >
+        <Link 
+          href="/products" 
+          className={`hover:text-gray-500 ${!activeCategory ? "text-gray-900 font-normal" : "text-gray-800"}`}
         >
-          <ChevronLeft className="h-5 w-5 text-gray-600" />
-        </button>
-
-        <div 
-          ref={navRef}
-          className="flex justify-center items-center gap-x-4 lg:gap-x-6 xl:gap-x-8 px-10 py-3 overflow-x-auto whitespace-nowrap scrollbar-hide"
-        >
-          <Link 
-            href="/products" 
-            className={`text-sm lg:text-base px-2 py-1 rounded hover:bg-gray-50 ${!activeCategory ? "text-blue-600 font-semibold" : "text-gray-800"}`}
+          All Products
+        </Link>
+        
+        {categoriesToDisplay.map((cat: { id: string; slug: string; name: string }) => (
+          <div 
+            key={cat.id}
+            className="relative group"
+            onMouseEnter={() => handleCategoryHover(cat.id)}
+            onMouseLeave={handleMouseLeave}
           >
-            All Products
-          </Link>
-          
-          {categoriesToDisplay.map((cat: { slug: string; name: string }) => (
             <Link
-              key={cat.slug}
               href={`/category/${cat.slug}`}
-              className={`text-sm lg:text-base px-2 py-1 rounded hover:bg-gray-50 ${activeCategory === cat.slug ? "text-blue-600 font-semibold" : "text-gray-800"}`}
+              className={`hover:text-gray-500 ${activeCategory === cat.slug ? "text-blue-600" : "text-gray-800 font-normal"}`}
             >
               {cat.name}
             </Link>
-          ))}
-        </div>
-
-        <button 
-          onClick={() => handleScroll('right')}
-          className={`absolute right-0 top-0 h-full w-8 flex items-center justify-center bg-white z-10 hover:bg-gray-50 ${navRef.current && scrollPosition >= navRef.current.scrollWidth - navRef.current.clientWidth ? 'opacity-30 cursor-default' : ''}`}
-          aria-label="Scroll right"
-          disabled={navRef.current ? scrollPosition >= navRef.current.scrollWidth - navRef.current.clientWidth : true}
-        >
-          <ChevronRight className="h-5 w-5 text-gray-600" />
-        </button>
+            
+            {/* Subcategories dropdown */}
+            {(hoveredCategory === cat.id && subcategoriesData?.subcategories?.length) && (
+              <div className="absolute left-1/2 transform -translate-x-1/2 top-full mt-0 w-56 bg-white shadow-lg rounded-md z-20 border border-gray-100">
+                <div className="py-2">
+                  {subcategoriesData.subcategories.map((subcat: { id: string; slug: string; name: string }) => (
+                    <Link
+                      key={subcat.id}
+                      href={`/category/${subcat.slug}`}
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                      onClick={() => setHoveredCategory(null)}
+                    >
+                      {subcat.name}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        ))}
       </div>
 
-      {/* Mobile Menu Dropdown */}
-      {showMobileMenu && (
-        <div className="md:hidden bg-white shadow-lg">
-          <div className="py-2">
-            <Link 
-              href="/products" 
-              className={`block px-4 py-3 ${!activeCategory ? "text-blue-600 font-semibold bg-blue-50" : "text-gray-800"}`}
-              onClick={() => setShowMobileMenu(false)}
-            >
-              All Products
-            </Link>
-            
-            {categoriesToDisplay.map((cat: { slug: string; name: string }) => (
-              <Link
-                key={cat.slug}
-                href={`/category/${cat.slug}`}
-                className={`block px-4 py-3 ${activeCategory === cat.slug ? "text-blue-600 font-semibold bg-blue-50" : "text-gray-800"}`}
-                onClick={() => setShowMobileMenu(false)}
-              >
-                {cat.name}
-              </Link>
-            ))}
-          </div>
-        </div>
-      )}
+      <button 
+        onClick={() => handleScroll('right')}
+        className="absolute right-0 top-0 h-full w-8 flex items-center justify-center bg-white z-10 hover:bg-gray-50"
+        aria-label="Scroll right"
+      >
+        <ChevronRight className="h-5 w-5 text-gray-600" />
+      </button>
     </div>
   );
 }

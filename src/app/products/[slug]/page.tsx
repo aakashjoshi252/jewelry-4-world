@@ -8,8 +8,10 @@ import { useParams } from "next/navigation";
 import {
   GET_PRODUCT_BY_SLUG,
   GET_SIMILAR_PRODUCTS,
+  GET_USER_RATING,
+  GET_WISHLISTS,
 } from "../../../graphql/queries";
-import { ADD_TO_CART, CREATE_REVIEW } from "../../../graphql/mutations";
+import { ADD_TO_CART, ADD_TO_WISHLIST, CREATE_REVIEW } from "../../../graphql/mutations";
 import Head from "next/head";
 // import Header from "../../../components/Header";
 import Link from "next/link";
@@ -24,6 +26,7 @@ import {
   ArrowPathIcon,
   ShieldCheckIcon,
 } from "@heroicons/react/24/outline";
+import LoadingPage from "@/components/LoadingPage";
 
 export default function ProductPage() {
   const { currency } = useCurrency();
@@ -31,6 +34,9 @@ export default function ProductPage() {
   const [selectedVariation, setSelectedVariation] = useState<any>(null);
   const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState(0);
+  const { data: wishlistData } = useQuery(GET_WISHLISTS);
+  const wishlistItems = wishlistData?.getWishlist?.items || [];
+  const [addtoWishlist] = useMutation(ADD_TO_WISHLIST);
 
   const [expanded, setExpanded] = useState(false);
   const MAX_LENGTH = 200;
@@ -47,6 +53,24 @@ export default function ProductPage() {
     variables: { slug },
     skip: !slug,
   });
+
+  const isInWishlist = (productId: string) => {
+    return wishlistItems.some((item: any) => item.product.id === productId);
+  };
+
+  const wishlist = async (productId: string) => {
+    try {
+      await addtoWishlist({
+        variables: {
+          productId,
+        },
+      });
+      toast.success("Added to wishlist");
+    } catch (err) {
+      toast.error("Failed to add to wishlist");
+      console.log(err);
+    }
+  };
 
   const [addToCart] = useMutation(ADD_TO_CART);
 
@@ -74,11 +98,12 @@ export default function ProductPage() {
       fetchPolicy: "network-only",
     });
 
+  const { data: userreviewdata } = useQuery(GET_USER_RATING);
+  const userRating = userreviewdata?.userReviews.rating;  
+
   if (loading)
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-      </div>
+      <LoadingPage/>
     );
 
   if (error)
@@ -216,8 +241,21 @@ export default function ProductPage() {
                     alt={product.name}
                     className="w-full h-full object-contain"
                   />
-                  <button className="absolute top-4 right-4 p-2 bg-white rounded-full shadow-md hover:bg-gray-100">
-                    <HeartIcon className="h-6 w-6 text-gray-400" />
+                  <button 
+                    onClick={(e) => {
+                      e.preventDefault();
+                      wishlist(product.id);
+                    }}
+                    className="absolute top-3 right-3 z-10 p-2 rounded-full bg-white/90 hover:bg-white transition-all shadow-sm"
+                    aria-label={isInWishlist(product.id) ? "Remove from wishlist" : "Add to wishlist"}
+                  >
+                    <HeartIcon
+                      className={`h-4 w-4 ${
+                        isInWishlist(product.id)
+                          ? 'text-red-500 fill-red-500 hover:text-red-600'
+                          : 'text-gray-400 hover:text-red-500'
+                      } transition-colors`}
+                    />
                   </button>
                 </div>
                 <div className="grid grid-cols-4 gap-3">
@@ -241,8 +279,8 @@ export default function ProductPage() {
               <div className="py-2">
                 <div className="flex justify-between items-start">
                   <div>
-                    <h1 className="text-2xl md:text-3xl font-bold text-gray-900">{product.name}</h1>
-                    <h2 className="text-lg md:text-lg font-bold text-gray-900">by {product.company.cname}</h2>
+                    <h1 className="text-xl md:text-2xl font-bold text-gray-900">{product.name}</h1>
+                    <h2 className="text-lg md:text-md font-bold text-gray-900">by {product.company.cname}</h2>
                     <div className="flex items-center mt-2">
                       <div className="flex">
                         {[0, 1, 2, 3, 4].map((rating) => (
@@ -253,7 +291,7 @@ export default function ProductPage() {
                         ))}
                       </div>
                       <span className="ml-2 text-sm text-gray-500">
-                        {product.reviews?.length ?? 0} ratings
+                        {product.averageRating} rating
                       </span>
                       {/* <span className="ml-2 text-sm text-gray-500">{product.averageRating} reviews</span> */}
                     </div>
@@ -265,7 +303,7 @@ export default function ProductPage() {
                 </div>
 
                 <div className="mt-6">
-                  <p className="text-3xl font-semibold text-gray-900">
+                  <p className="text-2xl font-semibold text-gray-900">
                     {formatCurrency(convertPrice(displayedPrice, currency), currency)}
                     {product.originalPrice && (
                       <span className="ml-2 text-lg text-gray-500 line-through">
@@ -279,13 +317,6 @@ export default function ProductPage() {
                     </span>
                   )}
                 </div>
-
-                {/* <div className="mt-6">
-                  <h3 className="text-sm font-medium text-gray-900">Description</h3>
-                  <div className="mt-2 prose prose-sm text-gray-500">
-                    <p>{product.description}</p>
-                  </div>
-                </div> */}
 
                 {/* Only show variations section if product has variations */}
                   {product.variations && product.variations.length > 0 && (
@@ -385,8 +416,9 @@ export default function ProductPage() {
               </div>
             </div>
           </div>
-
-          <div className="mt-6">
+            
+          <div className="mt-8 bg-white rounded-xl shadow-sm overflow-hidden">
+          <div className="p-6">
             <h3 className="text-xl font-bold text-gray-900">Description</h3>
             <div className="mt-2 text-md leading-relaxed text-gray-800">
               <p className="whitespace-pre-line">
@@ -402,6 +434,7 @@ export default function ProductPage() {
                 </button>
               )}
             </div>
+          </div>
           </div>
 
 
@@ -448,11 +481,11 @@ export default function ProductPage() {
                         </tr>
                         <tr>
                           <td className="py-2 text-sm font-medium text-gray-500">Weight</td>
-                          <td className="py-2 text-sm text-gray-900">{product.weight} g</td>
+                          <td className="py-2 text-sm text-gray-900">{product.weight}</td>
                         </tr>
                         <tr>
-                          <td className="py-2 text-sm font-medium text-gray-500">Dimensions</td>
-                          <td className="py-2 text-sm text-gray-900">10 × 5 × 3 cm</td>
+                          <td className="py-2 text-sm font-medium text-gray-500">Size</td>
+                          <td className="py-2 text-sm text-gray-900">{product.size}</td>
                         </tr>
                       </tbody>
                     </table>
@@ -577,7 +610,7 @@ export default function ProductPage() {
                 {/* Individual Reviews */}
                 {product.reviews?.length > 0 ? (
                   <div className="mt-6 space-y-6">
-                    {product.reviews.map((review: any) => (
+                    {product.reviews.slice(0, 3).map((review: any) => (
                       <div key={review.id} className="border-b border-gray-200 pb-6">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center">
@@ -585,12 +618,12 @@ export default function ProductPage() {
                               {[1, 2, 3, 4, 5].map((star) => (
                                 <StarIcon
                                   key={star}
-                                  className={`h-5 w-5 ${star <= review.rating ? 'text-yellow-400' : 'text-gray-300'}`}
+                                  className={`h-5 w-5 ${star <= Math.round(review.rating || 0) ? 'text-yellow-400' : 'text-gray-300'}`}
                                 />
                               ))}
                             </div>
                             <span className="ml-2 text-sm font-medium text-gray-700">
-                              {review.rating} out of 5
+                              {userRating} out of 5
                             </span>
                           </div>
                           {review.sentiment && (
@@ -613,8 +646,19 @@ export default function ProductPage() {
                 ) : (
                   <p className="mt-4 text-gray-500">No reviews yet. Be the first to review!</p>
                 )}
-              </div>
+               {/* More Reviews Link - Bottom Right */}
+                  {product.reviews?.length > 0 && (
+                    <div className="flex justify-end"> {/* Right-aligned container */}
+                      <Link 
+                        href={`/products/${slug}/reviews`} 
+                        className="text-sm text-blue-500 hover:text-blue-700 hover:underline mt-4"
+                      >
+                        more reviews 
+                      </Link>
+                    </div>
+                  )}
             </div>
+          </div>
 
           {/* Similar Products Section */}
           <section className="mt-12">
@@ -630,41 +674,83 @@ export default function ProductPage() {
                 <p>Error loading similar products: {similarError.message}</p>
               </div>
             ) : similarData?.getSimilarProducts?.length > 0 ? (
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+              <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
                 {similarData.getSimilarProducts.map((similarProduct: any) => (
                   <Link key={similarProduct.id} href={`/products/${similarProduct.slug}`}>
-                    <div className="group bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow">
-                      <div className="aspect-square bg-gray-100 relative">
-                        <img
-                          src="https://via.placeholder.com/400x400?text=Product"
-                          alt={similarProduct.name}
-                          className="w-full h-full object-cover"
-                        />
-                        <button className="absolute top-3 right-3 p-2 bg-white rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity">
-                          <HeartIcon className="h-5 w-5 text-gray-400" />
+                  <div className="group relative bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden">
+                    <div className="aspect-square bg-gray-100 relative">
+                      <Link href={`/products/${similarProduct.slug}`} className="block">
+                            <div className="aspect-square bg-gray-50 relative overflow-hidden">
+                              <div className="absolute inset-0 flex items-center justify-center">
+                                <span className="text-gray-300 text-sm">Product Image</span>
+                              </div>
+                              {new Date(similarProduct.createdAt) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) && (
+                                <span className="absolute top-2 left-2 bg-white text-gray-600 text-xs font-light px-2 py-0.5">
+                                  New
+                                </span>
+                              )}
+                            </div>
+                          </Link>
+                        <button 
+                          onClick={(e) => {
+                            e.preventDefault();
+                            wishlist(similarProduct.id);
+                          }}
+                          className="absolute top-3 right-3 z-10 p-2 rounded-full bg-white/90 hover:bg-white transition-all shadow-sm"
+                          aria-label={isInWishlist(similarProduct.id) ? "Remove from wishlist" : "Add to wishlist"}
+                        >
+                          <HeartIcon
+                            className={`h-4 w-4 ${
+                              isInWishlist(similarProduct.id)
+                                ? 'text-red-500 fill-red-500 hover:text-red-600'
+                                : 'text-gray-400 hover:text-red-500'
+                            } transition-colors`}
+                          />
                         </button>
+                    </div>
+                    <div className="p-4">
+                    <div className="flex justify-between items-start">
+                        <Link href={`/products/${similarProduct.slug}`} className="block">
+                          <h3 className="text-sm sm:text-base font-light text-gray-900 mb-1 hover:text-gray-600 transition line-clamp-2">
+                            {similarProduct.name}
+                          </h3>
+                        </Link>
                       </div>
-                      <div className="p-4">
-                        <h3 className="font-medium text-gray-900 group-hover:text-blue-600 transition-colors">
-                          {similarProduct.name}
-                        </h3>
-                        <div className="mt-1 flex items-center">
-                          <div className="flex">
-                            {[0, 1, 2, 3, 4].map((averageRating) => (
-                              <StarIcon
-                                key={averageRating}
-                                className={`h-4 w-4 ${averageRating < 4 ? 'text-yellow-400' : 'text-gray-300'}`}
-                              />
-                            ))}
-                          </div>
-                          <span className="ml-1 text-xs text-gray-500">({product.averageRating})</span>
+                      <div className="flex items-center mb-2">
+                        <div className="flex">
+                          {[0, 1, 2, 3, 4].map((averageRating) => (
+                            <StarIcon
+                              key={averageRating}
+                              className={`h-4 w-4 ${averageRating < 4 ? 'text-yellow-400' : 'text-gray-300'}`}
+                            />
+                          ))}
                         </div>
-                        <p className="mt-2 text-lg font-semibold text-gray-900">
+                        <span className="ml-1 text-xs text-gray-500">({similarProduct.averageRating})</span>
+                      </div>
+            
+                      {/* Flex row for price and material */}
+
+                      {/* <div className="mt-2 flex justify-between items-center">
+                        <p className="text-lg font-semibold text-gray-900">
                           {formatCurrency(convertPrice(similarProduct.price, currency), currency)}
                         </p>
-                      </div>
+                        <span className="inline-flex px-3.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                          {similarProduct.material}
+                        </span>
+                      </div> */}
+                      <div className="flex justify-between items-center">
+                          <p className="text-sm font-light text-gray-900">
+                            {formatCurrency(convertPrice(similarProduct.price, currency), currency)}
+                          </p>
+                          {similarProduct.material && (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                              {similarProduct.material}
+                            </span>
+                          )}
+                        </div>
                     </div>
-                  </Link>
+                  </div>
+                </Link>               
                 ))}
               </div>
             ) : (
